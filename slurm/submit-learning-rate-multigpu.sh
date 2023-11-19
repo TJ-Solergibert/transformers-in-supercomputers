@@ -12,7 +12,7 @@
 #SBATCH --exclusive
 #SBATCH --qos=debug
 
-cat /home/nct01/nct01328/transformers-in-supercomputers/experiments/metric/submit-learning-rate-multigpu.sh
+cat /home/nct01/nct01328/transformers-in-supercomputers/slurm/submit-learning-rate-multigpu.sh
 
 ######################
 ### Set enviroment ###

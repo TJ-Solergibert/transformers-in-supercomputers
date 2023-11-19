@@ -12,7 +12,7 @@
 #SBATCH --exclusive
 #SBATCH --qos=debug
 
-cat /home/nct01/nct01328/transformers-in-supercomputers/experiments/metric/submit-eval-batch-size-multigpu.sh
+cat /home/nct01/nct01328/transformers-in-supercomputers/slurm/submit-eval-batch-size-multigpu.sh
 
 ######################
 ### Set enviroment ###
