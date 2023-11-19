@@ -100,9 +100,21 @@ def training_function(args):
 
     tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
     # Multiply trainind and evaluation data.
-    if int(os.environ["WORLD_SIZE"]) > 4:
-        tokenized_datasets["train"] = concatenate_datasets([tokenized_datasets["train"] for _ in range(int(os.environ["WORLD_SIZE"])/4)])
-    tokenized_datasets["validation"] = concatenate_datasets([tokenized_datasets["validation"] for _ in range(2*int(os.environ["WORLD_SIZE"]))])
+   
+    # Every device will have 4096 samples for training and 4096 samples for evaluation
+    # tokenized_datasets["train"] = tokenized_datasets["train"].select(range(4096))
+    # tokenized_datasets["train"] = concatenate_datasets([tokenized_datasets["train"] for _ in range(int(os.environ["WORLD_SIZE"]))])
+    # tokenized_datasets["validation"] = tokenized_datasets["validation"].select(range(1024))
+    # tokenized_datasets["validation"] = concatenate_datasets([tokenized_datasets["validation"] for _ in range(4*int(os.environ["WORLD_SIZE"]))])
+    
+    # For benchmarks we will have the same number of samples in all the runs
+    # 32768 for train and 131072 for evaluation
+    # So in the case with 256 batch size, each device of the 4 nodes will have 8 batches for training
+    # and in a evaluation with eval batch size of 4096, every device will have 2 batches
+    tokenized_datasets["train"] = tokenized_datasets["train"].select(range(8192))
+    tokenized_datasets["train"] = concatenate_datasets([tokenized_datasets["train"] for _ in range(4)])
+    tokenized_datasets["validation"] = tokenized_datasets["validation"].select(range(1024))
+    tokenized_datasets["validation"] = concatenate_datasets([tokenized_datasets["validation"] for _ in range(2*64)])
     ########################################################
 
     ############### Training hyperparameters ###############
@@ -283,10 +295,13 @@ def training_function(args):
     full_training_time = time.time()-ft0
     if accelerator.is_main_process:
         logging.info(f"Training finished!")
-        logging.info(f"Complete training Time: {full_training_time}")
+        logging.info(f"Complete training Time: {full_training_time} s")
+        logging.info(f"[{int(os.environ['RANK'])}] Training iteration: {average(train_times)} s")
+        logging.info(f"[{int(os.environ['RANK'])}] Evaluation iteration: {average(eval_times)} s")
+        logging.info(f"[{int(os.environ['RANK'])}] Compute metric: {average(compute_metric_times)} s")
         logging.info(f"[{int(os.environ['RANK'])}] Training Throughput: {(train_size*num_epochs/int(os.environ['WORLD_SIZE']))/sum(train_times):.2f} samples/second")
         logging.info(f"[{int(os.environ['RANK'])}] Eval Throughput: {(eval_size*num_epochs/int(os.environ['WORLD_SIZE']))/sum(eval_times):.2f} samples/second")
-        logging.info(f"[{int(os.environ['RANK'])}] Compute metric: {average(compute_metric_times)} s")
+
     accelerator.wait_for_everyone()
     logging.info(f"[{int(os.environ['RANK'])}] Broadcast: {average(broadcast_times)*1000} ms/broadcast")
 def main():
