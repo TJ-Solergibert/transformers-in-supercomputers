@@ -99,9 +99,10 @@ def training_function(args):
         )
 
     tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
-    # Multiply trainind and evaluation data
-    tokenized_datasets["train"] = concatenate_datasets([tokenized_datasets["train"] for _ in range(5)])
-    tokenized_datasets["validation"] = concatenate_datasets([tokenized_datasets["validation"] for _ in range(40)])
+    # Multiply trainind and evaluation data.
+    if int(os.environ["WORLD_SIZE"]) > 4:
+        tokenized_datasets["train"] = concatenate_datasets([tokenized_datasets["train"] for _ in range(int(os.environ["WORLD_SIZE"])/4)])
+    tokenized_datasets["validation"] = concatenate_datasets([tokenized_datasets["validation"] for _ in range(2*int(os.environ["WORLD_SIZE"]))])
     ########################################################
 
     ############### Training hyperparameters ###############
