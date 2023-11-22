@@ -11,6 +11,9 @@
   - [Distributed evaluation with a shared file system](#distributed-evaluation-with-a-shared-file-system)
   - [Broadcast the metric](#broadcast-the-metric)
 - [Results](#results)
+  - [Training Iteration](#training-iteration)
+  - [Evaluation Iteration](#evaluation-iteration)
+  - [Broadcast](#broadcast)
 - [Acknowledgements](#acknowledgements)
 
 ## Introduction
@@ -32,7 +35,7 @@ To conduct the study, we have relied on the traditional scheme of training a mod
 
 To do this, we will train a multi-class classification model with a dataset containing 32,768 training samples and 131,072 for evaluation. The metric we will calculate based on the model's predictions will be the accuracy.
 
-Note that the evaluation part will be divided into three components: The evaluation batch size used by the model for making predictions on the GPU, the metric calculation performed by only one process (the _main_ or _master_ process) on the CPU, and the broadcast of the calculated metric to the rest of the processes.
+Note that the evaluation part will be divided into three components: A first part in which the model makes predictions of the samples of the evaluation dataset on the GPU, the metric calculation from the predictions which will be computed by only one process (the _main_ or _master_ process) on the CPU, and the broadcast of the metric to the rest of the processes.
 ### Training batch size
 The training batch size refers to the number of training samples utilized in one training step. During the training, the entire dataset is divided into smaller batches, and the model is updated based on the gradients calculated from each batch. In practical terms, the choice of the batch size is a hyperparameter that may require experimentation to find the optimal value for a specific task and dataset. 
 
@@ -129,4 +132,43 @@ for epoch in range(starting_epoch, num_epochs):
 +   broadcast(accuracy_tensor, 0)
 ```
 ## Results
+In this section, we present and analyze the results of studying all the variables mentioned in the previous section, with a total of up to 4 nodes.
+### Training Iteration
+In the training iteration, the model consumes the entire dataset to update its parameters. This operation is the most costly and is composed of 4 phases:
+1. **Forward Pass**: Each GPU performs a forward pass through the model using its local batch of data and calculates the loss.
+2. **Backward Pass**: After the forward pass, each GPU computes the gradients of the loss with respect to the model parameters using backpropagation. This involves calculating how much each parameter contributed to the error.
+3. **Gradient Aggregation**: The computed gradients from each GPU are then averaged, representing the overall direction in which the parameters should be updated to minimize the loss across all GPUs. This phase includes collective communications among all GPUs via NVLINK and NVSWITCH.
+4. **Parameter Update**: Now that all GPUs have the same aggregated gradients, they will update the parameters, and each and every process will produce the same updated model.
+
+Next, we present the results of experiments testing batch sizes of 64, 128, and 256, while enabling mixed precision.
+<img src="./img/Training_Iteration_Throughput.svg">
+
+In this graph, we display the throughput per device (measured in the number of samples the device can process per second) with different batch sizes and enabling mixed precision. Starting with experiments using fp32, we can observe that varying the batch size has virtually no influence on the throughput. This changes radically when working with fp16. At first glance, we notice that the throughput per device practically doubles, but the most striking aspect is that it also increases as we raise the batch size. This substantial improvement is attributed to tensor cores, a type of specialized hardware in the GPUs that accelerates matrix multiplications with reduced data types such as fp16. In general, we observe, for all six configurations, that as we increase the number of devices, the throughput decreases. This is due to the collective communications carried out to aggregate the gradients.
+
+<img src="./img/Training_Iteration_Times.svg">
+
+In this graph, we observe how what we have just discussed translates into a reduction in the time taken to consume the entire dataset. Next, we present the chart showing the speedup for each configuration compared to the case with 1 device. As we can see, the speedup up to the 8 GPU case (2 Nodes) is very close to the ideal, although when making the leap to 16 GPUs, we achieve a speedup of 10.7 for the batch size 256 - fp16 case. When working with multiple nodes, we must consider that the results may be influenced by the physical proximity of the nodes, the network topology, and even its utilization by other jobs from other users.
+
+<img src="./img/Training_Iteration_Speedup.svg">
+
+### Evaluation Iteration
+In the evaluation phase, the model generates predictions for the samples in the evaluation dataset, and subsequently, we calculate a metric which will be broadcasted to all the processes. We have computed the model's accuracy as the metric and employed fp16 in all experiments.
+
+<img src="./img/Evaluation_Iteration_Throughput.svg">
+
+In this graph, 
+
+<img src="./img/Evaluation_Iteration_Times.svg">
+
+In this graph, 
+
+<img src="./img/Evaluation_Iteration_Speedup.svg">
+
+### Broadcast
+
+<img src="./img/Broadcast_Times.svg">
+
+Finally, we have analyzed the time taken to broadcast the metric to the rest of the processes.
+
 ## Acknowledgements
+BSC
