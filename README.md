@@ -13,7 +13,6 @@
 - [Results](#results)
   - [Training Iteration](#training-iteration)
   - [Evaluation Iteration](#evaluation-iteration)
-  - [Broadcast](#broadcast)
 - [Acknowledgements](#acknowledgements)
 
 ## Introduction
@@ -141,13 +140,14 @@ In the training iteration, the model consumes the entire dataset to update its p
 4. **Parameter Update**: Now that all GPUs have the same aggregated gradients, they will update the parameters, and each and every process will produce the same updated model.
 
 Next, we present the results of experiments testing batch sizes of 64, 128, and 256, while enabling mixed precision.
+
 <img src="./img/Training_Iteration_Throughput.svg">
 
 In this graph, we display the throughput per device (measured in the number of samples the device can process per second) with different batch sizes and enabling mixed precision. Starting with experiments using fp32, we can observe that varying the batch size has virtually no influence on the throughput. This changes radically when working with fp16. At first glance, we notice that the throughput per device practically doubles, but the most striking aspect is that it also increases as we raise the batch size. This substantial improvement is attributed to tensor cores, a type of specialized hardware in the GPUs that accelerates matrix multiplications with reduced data types such as fp16. In general, we observe, for all six configurations, that as we increase the number of devices, the throughput decreases. This is due to the collective communications carried out to aggregate the gradients.
 
 <img src="./img/Training_Iteration_Times.svg">
 
-In this graph, we observe how what we have just discussed translates into a reduction in the time taken to consume the entire dataset. Next, we present the chart showing the speedup for each configuration compared to the case with 1 device. As we can see, the speedup up to the 8 GPU case (2 Nodes) is very close to the ideal, although when making the leap to 16 GPUs, we achieve a speedup of 10.7 for the batch size 256 - fp16 case. When working with multiple nodes, we must consider that the results may be influenced by the physical proximity of the nodes, the network topology, and even its utilization by other jobs from other users.
+In this graph, we observe how what we have just discussed translates into a reduction in the time taken to consume the entire dataset. Next, we present the chart showing the speedup for each configuration compared to the case with 1 device. As we can see, the speedup up to the 8 GPU case (2 Nodes) is very close to the ideal, although when making the leap to 16 GPUs, we achieve a speedup of 10.7 for the batch size 256 - fp16 case. When working with multiple nodes, we must consider that the results may be influenced by the physical proximity of the nodes, the network topology, and even its utilization by other jobs from other users. Even though using fp32 may result in a better speedup, we will not consider it from now on, as we have clearly observed the improvements achieved by using fp16 in terms of throughput and completion times for the iteration.
 
 <img src="./img/Training_Iteration_Speedup.svg">
 
@@ -156,19 +156,21 @@ In the evaluation phase, the model generates predictions for the samples in the 
 
 <img src="./img/Evaluation_Iteration_Throughput.svg">
 
-In this graph, 
+Unlike the training iteration, in the evaluation, we have observed that varying the evaluation batch size does not produce any changes in terms of throughput per device while performing the predictions. What we do observe is that as we increase the number of devices, it decreases. This is due to the way we aggregate all predictions from all devices to calculate the metric. On one hand, we perform a gather to collect all predictions, and subsequently, we write them to disk.
 
 <img src="./img/Evaluation_Iteration_Times.svg">
 
-In this graph, 
+In this graph, we can observe that varying the evaluation batch size will not affect the time taken to generate predictions. Also, in the following graph, we can see a speedup similar to that achieved in the training iteration, remaining close to the ideal up to the case of 2 nodes and achieving a speedup of 11.1 for the case with an evaluation batch size of 2048.
 
 <img src="./img/Evaluation_Iteration_Speedup.svg">
 
-### Broadcast
+<img src="./img/Compute_Metric_Times.svg">
+
+Once the predictions are generated and stored, the metric will be computed by the _main_ process with the CPU. As we can see in the graph, the evaluation batch size does not affect the time to calculate it. What does have an effect is the number of devices, as the time to calculate the metric increases as this number goes up. This increase is particularly significant, as using 8 GPUs entails approximately 7.5 seconds for the predictions and 3 seconds for metric calculation. However, when transitioning to 16 devices, we manage to reduce the prediction generation time to 4.5 seconds while observing an increase in metric calculation time to 6 seconds, so we do not observe any benefit.
 
 <img src="./img/Broadcast_Times.svg">
 
 Finally, we have analyzed the time taken to broadcast the metric to the rest of the processes.
 
 ## Acknowledgements
-BSC
+ADVISOR&BSCSUPPORT
