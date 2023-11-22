@@ -1,6 +1,6 @@
-<h3 align="center">
+<h1 align="center">
 <p>Training Transformers in Supercomputers with 🤗 Transformers, 🚀 Accelerate and Slurm
-</h3>
+</h1>
 
 - [Introduction](#introduction)
 - [Experiments](#experiments)
@@ -25,7 +25,7 @@ All experiments were conducted using PyTorch, 🤗 Transformers for the models, 
 - Single Port Mellanox EDR
 - GPFS via one fiber link 10 GBit
 
-In the execution of this project, we have primarily focused on the performance of the distributed training of the models, leaving precision or their learning capacity in the background. Nevertheless, we aimed to validate the theory by training a Distil-BERT model on the emotion dataset for a multi-class classification task. Below, we present the training configurations along with the results.
+In the execution of this project, we have primarily focused on the performance of the distributed training of the models, leaving precision or their learning capacity in the background. Nevertheless, we aimed to validate the theory by training a [DistilBERT](https://huggingface.co/distilbert-base-uncased) model on the [emotion](https://huggingface.co/datasets/dair-ai/emotion) dataset for a multi-class classification task. Below, we present the training configurations along with the results.
 
 ## Experiments
 To conduct the study, we have relied on the traditional scheme of training a model over several epochs, in which, for each epoch, the model consumes the entire training dataset to update it's parameters and calculates a metric using the evaluation dataset. Therefore, both datasets are synthetic, and we will not consider the model metrics as our focus is on the training and communication performance. More specifically, we will focus on the throughput per GPU and how the time decreases in the training and evaluation phases as we increase the number of devices.
@@ -40,7 +40,7 @@ In this study, we have considered batch sizes of 64, 128, and 256, as beyond 512
 ### Mixed precision
 Another factor we have studied is the effect of mixed precision. We will work with fp32 and fp16, as, despite Accelerate offering the ability to work with bf16 and fp8, we cannot use them because V100 GPUs do not support them.
 ### Evaluation batch size
-To make model predictions, we don't need to calculate gradients, so we will use the `torch.no_grad()` context manager, which will save us a significant amount of VRAM. This allows us to use larger evaluation batch sizes. We have studied evaluation batch sizes from 128, 256, 512, 1024, 2048 up to 4096, the maximum allowed by the GPU before incurring in Out Of Memory (OOM) errors.
+To make model predictions, we don't need to calculate gradients, so we will use the `torch.no_grad()` context manager, which will save us a significant amount of VRAM. This allows us to use larger evaluation batch sizes. We have studied evaluation batch sizes from 128, 256, 512, 1024, 2048 up to 4096, the maximum allowed by the GPU before incurring in OOM errors.
 
 ## Modifications
 ### Distributed evaluation with a shared file system
