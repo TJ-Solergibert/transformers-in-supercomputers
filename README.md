@@ -13,6 +13,7 @@
 - [Results](#results)
   - [Training Iteration](#training-iteration)
   - [Evaluation Iteration](#evaluation-iteration)
+- [Conclusions](#conclusions)
 - [Acknowledgements](#acknowledgements)
 
 ## Introduction
@@ -26,6 +27,17 @@ All experiments were conducted using PyTorch, 🤗 Transformers for the models, 
 - 2 x 3.2TB NVME
 - Single Port Mellanox EDR
 - GPFS via one fiber link 10 GBit
+
+The environment in which we carried out the project is as follows:
+```
+CUDA Version: 10.2
+Driver Version: 440.33.01
+torch 1.13.0a0+git25e3331
+transformers 4.24.0
+accelerate 0.20.0
+datasets 2.0.0
+evaluate 0.4.1
+```
 
 In the execution of this project, we have primarily focused on the performance of the distributed training of the models, leaving precision or their learning capacity in the background. Nevertheless, we aimed to validate the theory by training a [DistilBERT](https://huggingface.co/distilbert-base-uncased) model on the [emotion](https://huggingface.co/datasets/dair-ai/emotion) dataset for a multi-class classification task. Below, we present the training configurations along with the results.
 
@@ -170,7 +182,10 @@ Once the predictions are generated and stored, the metric will be computed by th
 
 <img src="./img/Broadcast_Times.svg">
 
-Finally, we have analyzed the time taken to broadcast the metric to the rest of the processes.
+Finally, we have analyzed the time taken to broadcast the metric to the rest of the processes. As we could expect, as we increase the number of devices, the time to perform the broadcast also increases.
 
+## Conclusions
+- As for the training iteration, we have observed the significant performance improvement of using tensor cores with fp16. It's worth noting that implementing this change requires virtually no effort from the programmer, and we achieve a speedup of approximately 2. We have also seen how tensor cores benefit from using larger batch sizes.
+- As for the evaluation iteration, we have observed that varying the evaluation batch size has no impact on throughput, while increasing the number of devices involved does. We have seen that, due to the procedure it performs for metric calculation on the CPU, this increases considerably and may be a factor to take into account depending on the time spent generating predictions on the GPU. It is worth noting that this evaluation iteration does not have to be carried out every epoch, so the effects on the overall training would be diminished. Another option would be to perform the evaluation with only a portion of the devices involved in training, but this would be more complex to implement. Finally, regarding the broadcast of the metric, it is something that we will have to take into account if we significantly increase the number of devices.
 ## Acknowledgements
 ADVISOR&BSCSUPPORT
