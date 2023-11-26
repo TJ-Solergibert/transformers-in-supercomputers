@@ -41,6 +41,18 @@ evaluate 0.4.1
 
 In the execution of this project, we have primarily focused on the performance of the distributed training of the models, leaving precision or their learning capacity in the background. Nevertheless, we aimed to validate the theory by training a [DistilBERT](https://huggingface.co/distilbert-base-uncased) model on the [emotion](https://huggingface.co/datasets/dair-ai/emotion) dataset for a multi-class classification task. Below, we present the training configurations along with the results.
 
+| Number of GPUs | Batch Size | Accuracy |  Time | Speedup |
+|:--------------:|:----------:|:--------:|:-----:|:-------:|
+|        1       |     256    |  0.9375  |  60.5 |    1    |
+|        2       |     256    |   0.927  |  29.9 |  2.025  |
+|        4       |     256    |   0.941  | 16.55 |  3.655  |
+|        8       |     256    |    0.84  |  9.45 |   6.4   |
+|       16       |     256    |    0.56  |  5.83 |   10.38 |
+|        8       |     128    |    0.93  | 10.33 |   5.86  |
+|       16       |     128    |    0.90  |  6.51 |   9.3   |
+
+We conducted the experiments with an evaluation batch size of 256, a learning rate of 5e-4, and for 5 epochs. We only calculate the metric at the end of the training, and all experiments were conducted with fp16. For the cases of 8 and 16 devices, as the dataset is small, we could reduce the batch size to allow the model to update the parameters more frequently and converge to a better solution at the expense of slightly lengthening the training.
+
 ## Experiments
 To conduct the study, we have relied on the traditional scheme of training a model over several epochs, in which, for each epoch, the model consumes the entire training dataset to update it's parameters and calculates a metric using the evaluation dataset. Therefore, both datasets are synthetic, and we will not consider the model metrics as our focus is on the training and communication performance. More specifically, we will focus on the throughput per GPU and how the time decreases in the training and evaluation phases as we increase the number of devices.
 
@@ -185,7 +197,7 @@ Once the predictions are generated and stored, the metric will be computed by th
 Finally, we have analyzed the time taken to broadcast the metric to the rest of the processes. As we could expect, as we increase the number of devices, the time to perform the broadcast also increases.
 
 ## Conclusions
-- As for the training iteration, we have observed the significant performance improvement of using tensor cores with fp16. It's worth noting that implementing this change requires virtually no effort from the programmer, and we achieve a speedup of approximately 2. We have also seen how tensor cores benefit from using larger batch sizes.
+- As for the training iteration, we have observed the significant performance improvement of using tensor cores with fp16. It's worth noting that implementing this change requires virtually no effort from the programmer, and we achieve a speedup of approximately 2. We have also seen how tensor cores benefit from using larger batch sizes. Finally, we have also observed that the more devices involved, the lower the throughput achieved. This is mainly due to communications between devices, and in our case, this issue is exacerbated by the absence of an NVSWITCH.
 - As for the evaluation iteration, we have observed that varying the evaluation batch size has no impact on throughput, while increasing the number of devices involved does. We have seen that, due to the procedure it performs for metric calculation on the CPU, this increases considerably and may be a factor to take into account depending on the time spent generating predictions on the GPU. It is worth noting that this evaluation iteration does not have to be carried out every epoch, so the effects on the overall training would be diminished. Another option would be to perform the evaluation with only a portion of the devices involved in training, but this would be more complex to implement. Finally, regarding the broadcast of the metric, it is something that we will have to take into account if we significantly increase the number of devices.
 ## Acknowledgements
-ADVISOR&BSCSUPPORT
+I have carried out this project under the supervision of Professor Jordi Torres from the Universitat Politècnica de Catalunya. I am deeply grateful for the assistance of Laia Julio, Ricard Zarco, and Felix Ramos from the BSC-Support team, who helped me prepare the environment for the project on MN4.
