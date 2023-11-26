@@ -217,20 +217,21 @@ def training_function(args):
                     accelerator.save_state(output_dir)
 
         ###################### Evaluation ######################
-        model.eval()
-        for step, batch in enumerate(eval_dataloader):
-            with torch.no_grad():
-                outputs = model(**batch)
-            predictions = outputs.logits.argmax(dim=-1)
-            predictions, references = accelerator.gather_for_metrics((predictions, batch["labels"]))
-            metric.add_batch(
-                predictions=predictions,
-                references=references,
-            )
-        
-        eval_metric = metric.compute()
-        if accelerator.is_main_process:
-            logging.info(f"Epoch {epoch} | Accuracy: {eval_metric['accuracy']}")
+        if (epoch + 1) % args.epochs_eval == 0:
+            model.eval()
+            for step, batch in enumerate(eval_dataloader):
+                with torch.no_grad():
+                    outputs = model(**batch)
+                predictions = outputs.logits.argmax(dim=-1)
+                predictions, references = accelerator.gather_for_metrics((predictions, batch["labels"]))
+                metric.add_batch(
+                    predictions=predictions,
+                    references=references,
+                )
+            
+            eval_metric = metric.compute()
+            if accelerator.is_main_process:
+                logging.info(f"Epoch {epoch+1} | Accuracy: {eval_metric['accuracy']}")
         ########################################################
         
         if args.with_tracking:
@@ -314,6 +315,11 @@ def main():
         type=int, 
         default=5, 
         help="Number of epochs"
+    )
+    parser.add_argument("--epochs_eval", 
+        type=int, 
+        default=5, 
+        help="How often we calculate the evaluation in epochs"
     )
     parser.add_argument(
         "--model_name",
