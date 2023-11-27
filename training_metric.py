@@ -301,22 +301,26 @@ def main():
         default="logs",
         help="Location on where to store experiment tracking logs.",
     )
-    parser.add_argument("--batch_size", 
+    parser.add_argument(
+        "--batch_size", 
         type=int, 
         default=128, 
         help="Batch size for training per device. Global batch size is batch_size * num_devices."
     )
-    parser.add_argument("--eval_batch_size", 
+    parser.add_argument(
+        "--eval_batch_size", 
         type=int, 
         default=None, 
         help="Batch size for evaluation per device. Global batch size is batch_size * num_devices."
     )
-    parser.add_argument("--num_epochs", 
+    parser.add_argument(
+        "--num_epochs", 
         type=int, 
         default=5, 
         help="Number of epochs"
     )
-    parser.add_argument("--epochs_eval", 
+    parser.add_argument(
+        "--epochs_eval", 
         type=int, 
         default=5, 
         help="How often we calculate the evaluation in epochs"
@@ -327,7 +331,8 @@ def main():
         default="distilbert-base-uncased",
         help="Model name from Hugging Face.",
     )
-    parser.add_argument("--learning_rate", 
+    parser.add_argument(
+        "--learning_rate", 
         type=float, 
         default=5e-4, 
         help="Learning rate."

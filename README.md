@@ -3,6 +3,7 @@
 </h1>
 
 - [Introduction](#introduction)
+  - [The Repository](#the-repository)
 - [Experiments](#experiments)
   - [Training batch size](#training-batch-size)
   - [Mixed precision](#mixed-precision)
@@ -52,6 +53,12 @@ In the execution of this project, we have primarily focused on the performance o
 |       16       |     128    |    0.90  |  6.51 |   9.3   |
 
 We conducted the experiments with an evaluation batch size of 256, a learning rate of 5e-4, and for 5 epochs. We only calculate the metric at the end of the training, and all experiments were conducted with fp16. For the cases of 8 and 16 devices, as the dataset is small, we could reduce the batch size to allow the model to update the parameters more times and converge to a better solution at the expense of slightly lengthening the training.
+
+### The Repository
+The intention of this repository is to serve as a starting point for future projects related to the training of transformers on infrastructures equipped with the Slurm job scheduler. That's why it includes the following:
+
+- Python scripts, both the [benchmark](training_benchmark.py) and the [use case](training_metric.py) presented in the introduction. Both are developed with 🤗 Accelerate to run on both a single node and multiple nodes.
+- Slurm scripts to launch jobs. Here, we differentiate between execution on [1 node](submit-multigpu.sh) and [multiple nodes](submit-multinode.sh). As in all Slurm scripts, resources must first be reserved for execution, followed by the definition of experiments. In our case, using `torchrun`, only one `task-per-node` will be executed. For the case of multiple nodes, it is necessary to include, as arguments to `torchrun`, which node will be the _master_ to [manage all communications](https://pytorch.org/docs/stable/elastic/run.html#note-on-rendezvous-backend).
 
 ## Experiments
 To conduct the study, we have relied on the traditional scheme of training a model over several epochs, in which, for each epoch, the model consumes the entire training dataset to update it's parameters and calculates a metric using the evaluation dataset. Therefore, both datasets are synthetic, and we will not consider the model metrics as our focus is on the training and communication performance. More specifically, we will focus on the throughput per GPU and how the time decreases in the training and evaluation phases as we increase the number of devices.
@@ -129,7 +136,7 @@ def _check_all_processes_locks(self):
 ```
 
 ### Broadcast the metric
-🤗 Evaluate only calculates the metrics on the main process. Therefore, if we want to use a callback based on this data, we will need to broadcast it to the rest of the processes. To do this, we simply have to create a tensor on all processes that we will move to the GPU where we will store the metric, and once calculated, broadcast it to the rest of the processes. 
+🤗 Evaluate only calculates the metrics on the main process. Therefore, if we want to use a callback based on this data, we will need to broadcast it to the rest of the processes. To do this, we simply have to create a tensor on all processes that we will move to the GPU where we will store the metric, and once calculated, broadcast it to the rest of the processes.
 ```diff
 +accuracy_tensor = torch.empty(1).cuda() # Tensor to allocate broadcasted accuracy 
 for epoch in range(starting_epoch, num_epochs):

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=eval-batch-size-multigpu
+#SBATCH --job-name=multigpu
 #SBATCH -D /home/nct01/nct01328/transformers-in-supercomputers
 #SBATCH --output=/home/nct01/nct01328/transformers-in-supercomputers/reports/R-%x.%j.out
 #SBATCH --error=/home/nct01/nct01328/transformers-in-supercomputers/reports/R-%x.%j.err
@@ -12,7 +12,7 @@
 #SBATCH --exclusive
 #SBATCH --qos=debug
 
-cat /home/nct01/nct01328/transformers-in-supercomputers/slurm/submit-eval-batch-size-multigpu.sh
+cat /home/nct01/nct01328/transformers-in-supercomputers/submit-multigpu.sh
 
 ######################
 ### Set enviroment ###
@@ -28,33 +28,23 @@ export TRANSFORMERS_OFFLINE=1
 export PYTHONPATH=/home/nct01/nct01328/transformers-in-supercomputers:$PYTHONPATH 
 ######################
 
-echo "####################################################################################"
-echo "############################### Eval Batch Size Test ###############################"
-echo "####################################################################################"
+export PYTHON_FILE="/home/nct01/nct01328/transformers-in-supercomputers/training_metric.py"
 
-export PYTHON_FILE="/home/nct01/nct01328/transformers-in-supercomputers/experiments/benchmark/training_benchmark.py"
-
-evalBatchsizeList=256,512,1024,2048,4096
 ngpusList=1,2,4
-export prec=fp16
-export bs=256
+batchsizeList=64,128,256
 
-  for ebs in ${evalBatchsizeList//,/ }
-do
+  for bs in ${batchsizeList//,/ }
+do 
   for n_gpu in ${ngpusList//,/ }
 do
-
-
-    echo "####################################################################################"
-    echo "################ EvalBatchSize: $ebs, GPUs: $n_gpu ###############"
-    echo "####################################################################################"
     export PYTHON_ARGS=" \ 
-        --mixed_precision $prec \ 
+        --mixed_precision fp16 \ 
         --batch_size $bs \
-        --eval_batch_size $ebs \
-    "
+        --eval_batch_size 512 \
+        --num_epochs 5 \
+        --model_name distilbert-base-uncased \
+        --learning_rate 5e-4 \
+        --dataset emotion \
+        "
     torchrun --nproc_per_node $n_gpu $PYTHON_FILE $PYTHON_ARGS
- 
 done
-done
-

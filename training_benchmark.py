@@ -99,14 +99,8 @@ def training_function(args):
         )
 
     tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
-    # Multiply trainind and evaluation data.
-   
-    # Every device will have 4096 samples for training and 4096 samples for evaluation
-    # tokenized_datasets["train"] = tokenized_datasets["train"].select(range(4096))
-    # tokenized_datasets["train"] = concatenate_datasets([tokenized_datasets["train"] for _ in range(int(os.environ["WORLD_SIZE"]))])
-    # tokenized_datasets["validation"] = tokenized_datasets["validation"].select(range(1024))
-    # tokenized_datasets["validation"] = concatenate_datasets([tokenized_datasets["validation"] for _ in range(4*int(os.environ["WORLD_SIZE"]))])
     
+    # Multiply trainind and evaluation data. 
     # For benchmarks we will have the same number of samples in all the runs
     # 32768 for train and 131072 for evaluation
     # So in the case with 256 batch size, each device of the 4 nodes will have 8 batches for training
@@ -344,17 +338,20 @@ def main():
         default="logs",
         help="Location on where to store experiment tracking logs.",
     )
-    parser.add_argument("--batch_size", 
+    parser.add_argument(
+        "--batch_size", 
         type=int, 
         default=256, 
         help="Batch size for training per device. Global batch size is batch_size * num_devices."
     )
-    parser.add_argument("--eval_batch_size", 
+    parser.add_argument(
+        "--eval_batch_size", 
         type=int, 
         default=512, 
         help="Batch size for evaluation per device. Global batch size is batch_size * num_devices."
     )
-    parser.add_argument("--num_epochs", 
+    parser.add_argument(
+        "--num_epochs", 
         type=int, 
         default=5, 
         help="Number of epochs"
@@ -365,7 +362,8 @@ def main():
         default="distilbert-base-uncased",
         help="Model name from Hugging Face.",
     )
-    parser.add_argument("--learning_rate", 
+    parser.add_argument(
+        "--learning_rate", 
         type=float, 
         default=5e-4, 
         help="Learning rate."
