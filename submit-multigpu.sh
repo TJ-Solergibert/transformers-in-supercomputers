@@ -48,3 +48,4 @@ do
         "
     torchrun --nproc_per_node $n_gpu $PYTHON_FILE $PYTHON_ARGS
 done
+done
