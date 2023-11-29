@@ -19,8 +19,6 @@ import torch
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.distributed import broadcast
-from torch.optim import AdamW
-from torch.utils.data import DataLoader
 
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_linear_schedule_with_warmup
 from datasets import load_dataset, concatenate_datasets
